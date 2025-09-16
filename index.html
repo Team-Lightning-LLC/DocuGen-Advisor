@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DocuGen - Document Generation Platform</title>
+<style>
+  :root{
+    --primary: #5D7E5D;
+    --primary-light: #7A9A7A;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+  }
+  
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+    color: var(--gray-900);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .header {
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 16px 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .logo {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+  }
+  
+  .brand-text h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--gray-900);
+  }
+  
+  .brand-text p {
+    font-size: 14px;
+    color: var(--gray-500);
+    margin: 0;
+  }
+
+  /* Main Content */
+  .container {
+    flex: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 60px 24px;
+    text-align: center;
+  }
+  
+  .hero {
+    margin-bottom: 60px;
+  }
+  
+  .hero h2 {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 16px;
+  }
+  
+  .hero p {
+    font-size: 20px;
+    color: var(--gray-600);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Navigation Cards */
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 60px;
+  }
+  
+  .nav-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 32px 24px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  
+  .nav-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary);
+  }
+  
+  .nav-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--primary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  .nav-card h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+  }
+  
+  .nav-card p {
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.5;
+  }
+  
+  .nav-card.coming-soon {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .nav-card.coming-soon:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-color: var(--gray-200);
+  }
+  
+  .coming-soon-badge {
+    background: var(--gray-200);
+    color: var(--gray-600);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 12px;
+    display: inline-block;
+  }
+
+  /* Footer */
+  .footer {
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    padding: 24px;
+    text-align: center;
+    color: var(--gray-500);
+    font-size: 14px;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero h2 {
+      font-size: 36px;
+    }
+    
+    .hero p {
+      font-size: 18px;
+    }
+    
+    .nav-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .container {
+      padding: 40px 16px;
+    }
+  }
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo">DG</div>
+      <div class="brand-text">
+        <h1>DocuGen</h1>
+        <p>By Doculabs</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="hero">
+      <h2>Financial Document Generation</h2>
+      <p>Streamline your workflow with AI-powered document creation, client management, and research tools.</p>
+    </div>
+
+    <!-- Navigation Cards -->
+    <div class="nav-grid">
+      <!-- Dashboard -->
+      <a href="dashboard.html" class="nav-card">
+        <div class="nav-icon">📊</div>
+        <h3>Dashboard</h3>
+        <p>Firm-wide overview with client metrics, generation queue, and document activity.</p>
+      </a>
+
+      <!-- Advisor -->
+      <a href="advisor.html" class="nav-card">
+        <div class="nav-icon">👤</div>
+        <h3>Advisor</h3>
+        <p>Individual client management, document generation, and portfolio tools.</p>
+      </a>
+
+      <!-- Research -->
+      <div class="nav-card coming-soon" onclick="showComingSoon('Research')">
+        <div class="nav-icon">🔍</div>
+        <h3>Research</h3>
+        <p>Market analysis, sector reports, and investment research library.</p>
+        <span class="coming-soon-badge">Coming Soon</span>
+      </div>
+
+      <!-- Chat -->
+      <div class="nav-card coming-soon" onclick="showComingSoon('Chat')">
+        <div class="nav-icon">💬</div>
+        <h3>Chat</h3>
+        <p>AI assistant for quick questions, document help, and client insights.</p>
+        <span class="coming-soon-badge">Coming Soon</span>
+      </div>
+    </div>
+
+    <!-- Quick Stats (Optional) -->
+    <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 24px; margin-top: 40px;">
+      <h3 style="margin-bottom: 16px; color: var(--gray-900);">Platform Status</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; text-align: center;">
+        <div>
+          <div style="font-size: 24px; font-weight: 700; color: var(--primary);" id="statusClients">-</div>
+          <div style="font-size: 12px; color: var(--gray-500);">Total Clients</div>
+        </div>
+        <div>
+          <div style="font-size: 24px; font-weight: 700; color: var(--primary);" id="statusDocs">-</div>
+          <div style="font-size: 12px; color: var(--gray-500);">Documents</div>
+        </div>
+        <div>
+          <div style="font-size: 24px; font-weight: 700; color: var(--primary);">1</div>
+          <div style="font-size: 12px; color: var(--gray-500);">Active Users</div>
+        </div>
+        <div>
+          <div style="font-size: 24px; font-weight: 700; color: var(--primary);">🟢</div>
+          <div style="font-size: 12px; color: var(--gray-500);">System Status</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2025 DocuGen by Doculabs. All rights reserved.</p>
+  </footer>
+
+<script>
+// Load quick stats
+async function loadQuickStats() {
+  try {
+    const response = await fetch('https://api.vertesia.io/api/v1/objects?limit=1000&offset=0', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const documents = await response.json();
+      
+      // Count unique clients
+      const clientNames = new Set();
+      documents.forEach(doc => {
+        let clientName = null;
+        if (doc.properties && doc.properties.client) {
+          clientName = doc.properties.client;
+        } else if (doc.name) {
+          if (doc.name.includes(' - ')) {
+            clientName = doc.name.split(' - ')[0].trim();
+          } else if (doc.name.includes('_')) {
+            const parts = doc.name.split('_');
+            if (parts.length >= 2) {
+              clientName = `${parts[0]} ${parts[1]}`;
+            }
+          }
+        }
+        if (clientName) {
+          clientNames.add(clientName.toLowerCase());
+        }
+      });
+      
+      document.getElementById('statusClients').textContent = clientNames.size;
+      document.getElementById('statusDocs').textContent = documents.length;
+    }
+  } catch (error) {
+    console.error('Failed to load stats:', error);
+  }
+}
+
+function showComingSoon(feature) {
+  alert(`${feature} functionality is coming soon! Currently in development.`);
+}
+
+// Load stats when page loads
+document.addEventListener('DOMContentLoaded', loadQuickStats);
+</script>
+</body>
+</html>
