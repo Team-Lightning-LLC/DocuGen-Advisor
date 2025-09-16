@@ -1644,58 +1644,6 @@ dialog::backdrop {
   background: var(--primary);
   border-radius: 1px;
 }
-
-  .upload-progress-item {
-  background: var(--soft);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.upload-file-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.upload-file-name {
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.upload-client-name {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.2s ease;
-}
-
-.upload-percentage {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--primary);
-  min-width: 35px;
-  text-align: right;
-}
 </style>
 </head>
 <body>
@@ -1901,9 +1849,10 @@ let sortOrder = 'desc';
 let documentsVisible = true;
 let selectedFiles = [];
   
-// Fake Upload Progress
-let fakeUploadQueue = [];
-let fakeUploadId = 0;
+// Upload Queue Variables (background processing)
+let uploadQueue = [];
+let isUploadProcessing = false;
+let uploadQueueId = 0;
   
 // Load clients dynamically from Vertesia
 async function loadClientsFromVertesia() {
@@ -2627,10 +2576,17 @@ async function createNewClient() {
     if (selectedFiles.length > 0) {
       createBtn.textContent = 'Adding documents to queue...';
       
-    selectedFiles.forEach(file => {
-  const newFileName = generateFileName(clientName, file.name);
-  addToFakeUploadQueue(newFileName, clientName);
-});
+      selectedFiles.forEach(file => {
+        const newFileName = generateFileName(clientName, file.name);
+        uploadQueue.push({
+          id: ++uploadQueueId,
+          file: file,
+          originalName: file.name,
+          newName: newFileName,
+          clientName: clientName
+        });
+        console.log(`Added to queue: ${file.name} -> ${newFileName}`);
+      });
       
       // Start background processing
       processUploadQueue();
@@ -2712,10 +2668,16 @@ async function handleFileUpload(event) {
   const clientName = clientsData[currentClient].name;
   
   // Add files to background queue
- files.forEach(file => {
-  const newFileName = generateFileName(clientName, file.name);
-  addToFakeUploadQueue(newFileName, clientName);
-});
+  files.forEach(file => {
+    const newFileName = generateFileName(clientName, file.name);
+    uploadQueue.push({
+      id: ++uploadQueueId,
+      file: file,
+      originalName: file.name,
+      newName: newFileName,
+      clientName: clientName
+    });
+  });
   
   // Start processing immediately in background
   processUploadQueue();
@@ -2730,61 +2692,34 @@ async function handleFileUpload(event) {
   event.target.value = '';
 }
 
-function addToFakeUploadQueue(fileName, clientName) {
-  const uploadItem = {
-    id: ++fakeUploadId,
-    fileName: fileName,
-    clientName: clientName,
-    progress: 0,
-    startTime: Date.now()
-  };
+async function processUploadQueue() {
+  if (isUploadProcessing || uploadQueue.length === 0) return;
   
-  fakeUploadQueue.push(uploadItem);
-  updateUploadQueueDisplay();
+  isUploadProcessing = true;
   
-  // Simulate progress over 8-12 seconds
-const duration = 90000;
-  const interval = setInterval(() => {
-    const elapsed = Date.now() - uploadItem.startTime;
-    uploadItem.progress = Math.min(100, (elapsed / duration) * 100);
+  while (uploadQueue.length > 0) {
+    const queueItem = uploadQueue.shift();
     
-    updateUploadQueueDisplay();
-    
-    if (uploadItem.progress >= 100) {
-      clearInterval(interval);
-      // Remove from queue after completion
-      setTimeout(() => {
-        fakeUploadQueue = fakeUploadQueue.filter(item => item.id !== uploadItem.id);
-        updateUploadQueueDisplay();
-      }, 1000);
+    try {
+      await uploadSingleFile(queueItem);
+      console.log(`Successfully uploaded: ${queueItem.newName}`);
+    } catch (error) {
+      console.error(`Failed to upload: ${queueItem.newName}`, error);
     }
-  }, 200);
-}
-
-function updateUploadQueueDisplay() {
-  const container = document.getElementById('uploadQueueItems');
-  const countSpan = document.getElementById('uploadQueueCount');
-  
-  countSpan.textContent = fakeUploadQueue.length;
-  
-  if (fakeUploadQueue.length === 0) {
-    container.innerHTML = '<div class="empty-queue">No files uploading</div>';
-    return;
+    
+    // 3-5 second delay between uploads
+    if (uploadQueue.length > 0) {
+      const delay = 3000 + Math.random() * 2000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
   
-  container.innerHTML = fakeUploadQueue.map(item => `
-    <div class="upload-progress-item">
-      <div class="upload-file-info">
-        <div class="upload-file-name">${item.fileName}</div>
-        <div class="upload-client-name">${item.clientName}</div>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width: ${item.progress}%"></div>
-      </div>
-      <div class="upload-percentage">${Math.round(item.progress)}%</div>
-    </div>
-  `).join('');
+  isUploadProcessing = false;
 }
+
+async function uploadSingleFile(queueItem) {
+  const file = queueItem.file;
+  const fileName = queueItem.newName;
   
   // Step 1: Get upload URL
   const urlResponse = await fetch('https://api.vertesia.io/api/v1/objects/upload-url', {
