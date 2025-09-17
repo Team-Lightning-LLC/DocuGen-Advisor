@@ -2215,7 +2215,86 @@ class DocumentQueue {
     this.activeGenerations.delete(id);
     this.updateQueueDisplay();
   }
+  class DocumentQueue {
+  constructor() { 
+    this.activeGenerations = new Map(); 
+    this.timers = new Map(); 
+    
+    // Load any existing queue state when page loads
+    this.loadQueueState();
+  }
   
+  addGeneration(docType, clientId) {
+    const id = Date.now() + Math.random();
+    const g = {
+      id, docType, clientId, 
+      clientName: clientsData[clientId].name, 
+      startTime: Date.now(), 
+      estimatedDuration: 5 * 60 * 1000
+    };
+    this.activeGenerations.set(id, g); 
+    this.startTimer(id); 
+    this.updateQueueDisplay(); 
+    this.saveQueueState(); // Save to localStorage
+    return id;
+  }
+  
+  removeGeneration(id) { 
+    clearInterval(this.timers.get(id)); 
+    this.timers.delete(id); 
+    this.activeGenerations.delete(id); 
+    this.updateQueueDisplay(); 
+    this.saveQueueState(); // Save to localStorage
+  }
+  
+  completeGeneration(id) { 
+    const g = this.activeGenerations.get(id); 
+    if (g) {
+      const newDoc = {
+        id: Date.now(), 
+        name: g.docType, 
+        date: new Date().toISOString().split('T')[0], 
+        client: g.clientId, 
+        type: 'generated'
+      };
+      documentsData.unshift(newDoc); 
+      if (g.clientId === currentClient) { 
+        renderDocuments(); 
+        updateProfileStatus(); 
+      }
+    } 
+    this.removeGeneration(id); 
+  }
+  
+  // Save queue state to localStorage
+  saveQueueState() {
+    const state = {
+      generations: Array.from(this.activeGenerations.entries()),
+      timestamp: Date.now()
+    };
+    localStorage.setItem('docugen_queue_state', JSON.stringify(state));
+  }
+  
+  // Load queue state from localStorage
+  loadQueueState() {
+    try {
+      const saved = localStorage.getItem('docugen_queue_state');
+      if (saved) {
+        const state = JSON.parse(saved);
+        state.generations.forEach(([id, generation]) => {
+          // Only restore if generation is still within reasonable time
+          const elapsed = Date.now() - generation.startTime;
+          if (elapsed < generation.estimatedDuration) {
+            this.activeGenerations.set(id, generation);
+            this.startTimer(id);
+          }
+        });
+        this.updateQueueDisplay();
+      }
+    } catch (error) {
+      console.error('Failed to load queue state:', error);
+    }
+  }
   // FIX: Make this a proper method of the class
   updateQueueDisplay() {
     const itemsElement = document.getElementById('queueItems');
