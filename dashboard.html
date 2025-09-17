@@ -299,6 +299,19 @@
     to { transform: rotate(360deg); }
   }
 
+  .cancel-btn {
+    background: none;
+    border: none;
+    color: var(--warn);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+  }
+
+  .cancel-btn:hover {
+    color: var(--primary-dark);
+  }
+
   /* Document List */
   .document-item {
     padding: 16px 20px;
@@ -441,7 +454,7 @@
       <!-- KPI Cards -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <span class="kpi-value" id="totalClients">4</span>
+          <span class="kpi-value" id="totalClients">-</span>
           <div class="kpi-label">Total Clients</div>
           <div class="kpi-sublabel">Active households</div>
         </div>
@@ -453,13 +466,13 @@
         </div>
         
         <div class="kpi-card">
-          <span class="kpi-value" id="totalDocs">29</span>
+          <span class="kpi-value" id="totalDocs">-</span>
           <div class="kpi-label">Documents in Database</div>
           <div class="kpi-sublabel">Unique documents</div>
         </div>
         
         <div class="kpi-card">
-          <span class="kpi-value" id="recentDocs">14</span>
+          <span class="kpi-value" id="recentDocs">-</span>
           <div class="kpi-label">Docs (7d)</div>
           <div class="kpi-sublabel">New/generated</div>
         </div>
@@ -495,47 +508,10 @@
         <div class="content-section">
           <div class="section-header">
             <h2 class="section-title">Recent Documents</h2>
-            <button class="sort-btn">Sort</button>
+            <button class="sort-btn" onclick="toggleResearchSort()">Sort</button>
           </div>
           <div class="scrollable-content" id="documentsList">
-            <div class="document-item">
-              <div class="document-name">Ahmed_Ishmal_document_9.docx</div>
-              <div class="document-meta">
-                <span>Ahmed Ishmal</span>
-                <span>•</span>
-                <span>9/16/2025</span>
-              </div>
-              <div class="document-actions">
-                <a class="action-link">View</a>
-                <a class="action-link">Download</a>
-              </div>
-            </div>
-            
-            <div class="document-item">
-              <div class="document-name">Chris_Lehman_Portfolio_Analysis_2025.md</div>
-              <div class="document-meta">
-                <span>Unknown Client</span>
-                <span>•</span>
-                <span>9/16/2025</span>
-              </div>
-              <div class="document-actions">
-                <a class="action-link">View</a>
-                <a class="action-link">Download</a>
-              </div>
-            </div>
-            
-            <div class="document-item">
-              <div class="document-name">Ahmed_Ishmal_Retirement_Planning_Document.md</div>
-              <div class="document-meta">
-                <span>Unknown Client</span>
-                <span>•</span>
-                <span>9/16/2025</span>
-              </div>
-              <div class="document-actions">
-                <a class="action-link">View</a>
-                <a class="action-link">Download</a>
-              </div>
-            </div>
+            <div class="empty-state">Loading documents...</div>
           </div>
         </div>
 
@@ -543,35 +519,10 @@
         <div class="content-section">
           <div class="section-header">
             <h2 class="section-title">Clients</h2>
-            <button class="sort-btn">Sort</button>
+            <button class="sort-btn" onclick="toggleClientSort()">Sort</button>
           </div>
           <div class="scrollable-content" id="clientsList">
-            <div class="client-item">
-              <div class="client-name">Ahmed Ishmal</div>
-              <div class="client-status">
-                <div class="status-indicator status-complete"></div>
-                <span class="status-complete">AI Profile Complete</span>
-              </div>
-              <div class="client-docs">4 documents</div>
-            </div>
-            
-            <div class="client-item">
-              <div class="client-name">Chris Lehman</div>
-              <div class="client-status">
-                <div class="status-indicator status-required"></div>
-                <span class="status-required">AI Profile Required</span>
-              </div>
-              <div class="client-docs">6 documents</div>
-            </div>
-            
-            <div class="client-item">
-              <div class="client-name">Nigel Financial</div>
-              <div class="client-status">
-                <div class="status-indicator status-complete"></div>
-                <span class="status-complete">AI Profile Complete</span>
-              </div>
-              <div class="client-docs">6 documents</div>
-            </div>
+            <div class="empty-state">Loading clients...</div>
           </div>
         </div>
       </div>
@@ -579,19 +530,76 @@
   </div>
 
 <script>
-// Same dynamic functionality as before, but with updated styling
+// API setup
 const VERTESIA_API_KEY = 'sk-544583102491bf69b0351418bbdd2aa9';
 const VERTESIA_BASE_URL = 'https://api.vertesia.io/api/v1';
 
 let clientsData = {};
 let documentsData = [];
 let allDocuments = [];
+let researchSortOrder = 'desc';
+let clientSortOrder = 'alpha';
 
-// Queue management
-class DashboardQueue {
+// DocumentQueue class adapted from your original wireframe code
+class DocumentQueue {
   constructor() {
     this.activeGenerations = new Map();
     this.timers = new Map();
+    
+    // Try to restore queue state from localStorage
+    this.loadQueueState();
+  }
+  
+  addGeneration(docType, clientId, clientName) {
+    const id = Date.now() + Math.random();
+    const generation = {
+      id,
+      docType,
+      clientId, 
+      clientName,
+      startTime: Date.now(),
+      estimatedDuration: 5 * 60 * 1000 // 5 minutes
+    };
+    
+    this.activeGenerations.set(id, generation);
+    this.startTimer(id);
+    this.updateQueueDisplay();
+    this.saveQueueState();
+    return id;
+  }
+  
+  startTimer(id) {
+    const timer = setInterval(() => {
+      const generation = this.activeGenerations.get(id);
+      if (!generation) {
+        clearInterval(timer);
+        return;
+      }
+      
+      const elapsed = Date.now() - generation.startTime;
+      if (elapsed >= generation.estimatedDuration) {
+        this.completeGeneration(id);
+      }
+      this.updateQueueDisplay();
+    }, 1000);
+    
+    this.timers.set(id, timer);
+  }
+  
+  completeGeneration(id) {
+    const generation = this.activeGenerations.get(id);
+    if (generation) {
+      console.log(`Document "${generation.docType}" completed for ${generation.clientName}`);
+    }
+    this.removeGeneration(id);
+  }
+  
+  removeGeneration(id) {
+    clearInterval(this.timers.get(id));
+    this.timers.delete(id);
+    this.activeGenerations.delete(id);
+    this.updateQueueDisplay();
+    this.saveQueueState();
   }
   
   updateQueueDisplay() {
@@ -602,12 +610,90 @@ class DashboardQueue {
       return;
     }
     
-    // Update queue display logic here
+    const rows = Array.from(this.activeGenerations.values()).map(gen => {
+      const elapsed = Date.now() - gen.startTime;
+      const remaining = Math.max(0, gen.estimatedDuration - elapsed);
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+      const progress = Math.min(100, (elapsed / gen.estimatedDuration) * 100);
+      
+      return `
+        <tr>
+          <td>
+            <div class="queue-item-cell">
+              <div class="spinner"></div>
+              <span>${gen.docType}</span>
+            </div>
+          </td>
+          <td>${gen.clientName}</td>
+          <td>${new Date(gen.startTime).toLocaleTimeString()}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font: 12px ui-monospace, monospace; color: var(--muted);">${minutes}:${seconds}</span>
+              <div style="width: 60px; height: 4px; background: var(--hair); border-radius: 2px; overflow: hidden;">
+                <div style="height: 100%; background: var(--primary); width: ${progress}%; transition: width 0.3s;"></div>
+              </div>
+              <button class="cancel-btn" onclick="documentQueue.removeGeneration(${gen.id})">✕</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    
+    tbody.innerHTML = rows;
+  }
+  
+  // Save/load queue state to localStorage so it persists across pages
+  saveQueueState() {
+    const state = {
+      generations: Array.from(this.activeGenerations.entries())
+    };
+    localStorage.setItem('docugen_queue_state', JSON.stringify(state));
+  }
+  
+  loadQueueState() {
+    try {
+      const saved = localStorage.getItem('docugen_queue_state');
+      if (saved) {
+        const state = JSON.parse(saved);
+        state.generations.forEach(([id, generation]) => {
+          // Only restore if generation is still within reasonable time
+          const elapsed = Date.now() - generation.startTime;
+          if (elapsed < generation.estimatedDuration) {
+            this.activeGenerations.set(id, generation);
+            this.startTimer(id);
+          }
+        });
+        this.updateQueueDisplay();
+      }
+    } catch (error) {
+      console.error('Failed to load queue state:', error);
+    }
   }
 }
 
-const dashboardQueue = new DashboardQueue();
+// Create global queue instance
+const documentQueue = new DocumentQueue();
 
+// Make it available globally so the advisor page can use it too
+window.documentQueue = documentQueue;
+
+// AI Profile checking function from your uploaded code
+function checkClientProfile(clientId) {
+  const client = clientsData[clientId];
+  if (!client) return false;
+  
+  const [firstName, lastName = ''] = client.name.split(' ');
+  return client.documents.some(doc => {
+    if (!doc.name) return false;
+    const name = doc.name.toLowerCase();
+    const hasAI = name.includes('ai_profile') || name.includes('ai profile') || name.includes('aiprofile');
+    const hasName = name.includes(firstName.toLowerCase()) && (!lastName || name.includes(lastName.toLowerCase()));
+    return hasAI && hasName;
+  });
+}
+
+// Load clients from Vertesia
 async function loadClientsFromVertesia() {
   try {
     const response = await fetch(`${VERTESIA_BASE_URL}/objects?limit=1000&offset=0`, {
@@ -618,34 +704,227 @@ async function loadClientsFromVertesia() {
       }
     });
 
-    if (response.ok) {
-      const documents = await response.json();
-      allDocuments = documents;
-      updateDashboard();
+    if (!response.ok) {
+      throw new Error(`Failed to fetch documents: ${response.status}`);
     }
+
+    const documents = await response.json();
+    allDocuments = documents;
+
+    // Extract unique client names
+    const clientNamesMap = new Map();
+    documents.forEach(doc => {
+      let clientName = null;
+      if (doc.properties && doc.properties.client) {
+        clientName = doc.properties.client;
+      } else if (doc.name) {
+        if (doc.name.includes(' - ')) {
+          clientName = doc.name.split(' - ')[0].trim();
+        } else if (doc.name.includes('_')) {
+          const parts = doc.name.split('_');
+          if (parts.length >= 2) {
+            clientName = `${parts[0]} ${parts[1]}`;
+          }
+        } else {
+          const nameMatch = doc.name.match(/^([A-Z][a-z]+\s+[A-Z][a-z]+)/);
+          if (nameMatch) {
+            clientName = nameMatch[1];
+          }
+        }
+      }
+      
+      if (clientName) {
+        clientName = clientName.replace(/\.(pdf|docx?|xlsx?|pptx?)$/i, '').trim();
+        if (clientName.includes(' ') && clientName.split(' ').length >= 2) {
+          const normalized = clientName.toLowerCase().replace(/\s+/g, ' ').trim();
+          if (!clientNamesMap.has(normalized)) {
+            clientNamesMap.set(normalized, clientName);
+          }
+        }
+      }
+    });
+
+    // Build clientsData structure with documents for each client
+    clientsData = {};
+    Array.from(clientNamesMap.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .forEach(([normalized, displayName]) => {
+        const clientId = normalized.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '');
+        
+        const clientDocs = documents.filter(doc => {
+          const docName = doc.name.toLowerCase();
+          return docName.includes(displayName.toLowerCase());
+        });
+        
+        clientsData[clientId] = { 
+          name: displayName,
+          documents: clientDocs
+        };
+      });
+
+    updateDashboard();
   } catch (error) {
-    console.error('Failed to load data:', error);
+    console.error('Failed to load clients:', error);
+    document.getElementById('totalClients').textContent = 'Error';
   }
 }
 
 function updateDashboard() {
-  // Update KPIs and content sections
-  document.getElementById('totalClients').textContent = Object.keys(clientsData).length || 4;
-  document.getElementById('totalDocs').textContent = allDocuments.length || 29;
+  // Update KPIs
+  document.getElementById('totalClients').textContent = Object.keys(clientsData).length;
+  document.getElementById('totalDocs').textContent = allDocuments.length;
   
+  // Recent Documents (7 days)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const recentCount = allDocuments.filter(doc => {
     const docDate = new Date(doc.created_at || doc.updated_at);
     return docDate >= sevenDaysAgo;
   }).length;
+  document.getElementById('recentDocs').textContent = recentCount;
   
-  document.getElementById('recentDocs').textContent = recentCount || 14;
+  // Update sections
+  updateRecentDocuments();
+  updateClientsList();
+}
+
+function updateRecentDocuments() {
+  const container = document.getElementById('documentsList');
+  
+  if (allDocuments.length === 0) {
+    container.innerHTML = '<div class="empty-state">No documents found</div>';
+    return;
+  }
+  
+  // Sort documents by date
+  let sortedDocs = [...allDocuments].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.updated_at);
+    const dateB = new Date(b.created_at || b.updated_at);
+    return researchSortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  });
+  
+  // Take most recent 10
+  sortedDocs = sortedDocs.slice(0, 10);
+  
+  container.innerHTML = sortedDocs.map(doc => {
+    const date = new Date(doc.created_at || doc.updated_at).toLocaleDateString();
+    const clientName = extractClientFromDoc(doc);
+    
+    return `
+      <div class="document-item">
+        <div class="document-name">${doc.name}</div>
+        <div class="document-meta">
+          <span>${clientName}</span>
+          <span>•</span>
+          <span>${date}</span>
+        </div>
+        <div class="document-actions">
+          <a class="action-link" onclick="viewDocument('${doc.id}')">View</a>
+          <a class="action-link" onclick="downloadDocument('${doc.id}')">Download</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateClientsList() {
+  const container = document.getElementById('clientsList');
+  
+  if (Object.keys(clientsData).length === 0) {
+    container.innerHTML = '<div class="empty-state">Loading clients...</div>';
+    return;
+  }
+  
+  let clients = Object.entries(clientsData);
+  
+  // Sort clients
+  if (clientSortOrder === 'alpha') {
+    clients.sort((a, b) => a[1].name.localeCompare(b[1].name));
+  } else {
+    clients.sort((a, b) => b[1].documents.length - a[1].documents.length);
+  }
+  
+  container.innerHTML = clients.map(([clientId, client]) => {
+    const hasProfile = checkClientProfile(clientId);
+    const statusClass = hasProfile ? 'status-complete' : 'status-required';
+    const statusText = hasProfile ? 'AI Profile Complete' : 'AI Profile Required';
+    const docCount = client.documents.length;
+    
+    return `
+      <div class="client-item" onclick="viewClient('${clientId}')">
+        <div class="client-name">${client.name}</div>
+        <div class="client-status">
+          <div class="status-indicator ${statusClass}"></div>
+          <span class="${statusClass}">${statusText}</span>
+        </div>
+        <div class="client-docs">${docCount} document${docCount !== 1 ? 's' : ''}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Helper functions
+function extractClientFromDoc(doc) {
+  if (doc.properties && doc.properties.client) {
+    return doc.properties.client;
+  }
+  
+  for (const [clientId, client] of Object.entries(clientsData)) {
+    if (doc.name.toLowerCase().includes(client.name.toLowerCase())) {
+      return client.name;
+    }
+  }
+  
+  return 'Unknown Client';
+}
+
+function toggleResearchSort() {
+  researchSortOrder = researchSortOrder === 'desc' ? 'asc' : 'desc';
+  updateRecentDocuments();
+}
+
+function toggleClientSort() {
+  clientSortOrder = clientSortOrder === 'alpha' ? 'docs' : 'alpha';
+  updateClientsList();
+}
+
+function viewClient(clientId) {
+  window.location.href = `advisor.html?client=${clientId}`;
+}
+
+function viewDocument(docId) {
+  console.log('View document:', docId);
+}
+
+function downloadDocument(docId) {
+  console.log('Download document:', docId);
+}
+
+// Demo function to test queue
+function simulateGeneration() {
+  const clients = Object.entries(clientsData);
+  if (clients.length > 0) {
+    const [clientId, client] = clients[Math.floor(Math.random() * clients.length)];
+    const docTypes = ['Portfolio Analysis', '15 min Meeting Preparation', 'Quarterly Report', 'Tax Planning'];
+    const docType = docTypes[Math.floor(Math.random() * docTypes.length)];
+    
+    documentQueue.addGeneration(docType, clientId, client.name);
+    console.log(`Added "${docType}" to queue for ${client.name}`);
+  } else {
+    console.log('No clients available for demo generation');
+  }
 }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadClientsFromVertesia();
+  
+  // Demo message
+  setTimeout(() => {
+    if (Object.keys(clientsData).length > 0) {
+      console.log('Demo: Call simulateGeneration() to test queue functionality');
+    }
+  }, 3000);
 });
 
 // Auto-refresh every 30 seconds
