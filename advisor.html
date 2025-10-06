@@ -2409,31 +2409,12 @@ async function init() {
   });
 }
 
-
 // Render client list
 function renderClients() {
   const clientList = document.getElementById('clientList');
   clientList.innerHTML = '';
   
-  // HARDCODED FILTER - Only show these specific clients
-  const allowedClients = [
-    'ahmed ishmai',
-    'chris lehman', 
-    'steve smith'
-  ];
-  
-  // Filter clientsData to only include allowed clients
-  const filteredClientsData = {};
-  Object.entries(clientsData).forEach(([clientId, client]) => {
-    if (allowedClients.some(allowed => 
-      client.name.toLowerCase() === allowed || 
-      client.name.toLowerCase() === allowed.split(' ').reverse().join(' ')
-    )) {
-      filteredClientsData[clientId] = client;
-    }
-  });
-  
-  if (Object.keys(filteredClientsData).length === 0) {
+  if (Object.keys(clientsData).length === 0) {
     const emptyDiv = document.createElement('div');
     emptyDiv.className = 'empty-state';
     emptyDiv.textContent = 'No clients found. Add a client to get started.';
@@ -2442,16 +2423,18 @@ function renderClients() {
   }
   
   // Sort clients alphabetically by last name, then first name
-  const sortedClients = Object.entries(filteredClientsData).sort((a, b) => {
+  const sortedClients = Object.entries(clientsData).sort((a, b) => {
     const namePartsA = a[1].name.split(' ');
     const namePartsB = b[1].name.split(' ');
     
-    const lastNameA = namePartsA[namePartsA.length - 1];
+    const lastNameA = namePartsA[namePartsA.length - 1]; // Get last part as last name
     const lastNameB = namePartsB[namePartsB.length - 1];
     
+    // First sort by last name
     const lastNameCompare = lastNameA.localeCompare(lastNameB);
     if (lastNameCompare !== 0) return lastNameCompare;
     
+    // If last names are the same, sort by first name
     const firstNameA = namePartsA[0];
     const firstNameB = namePartsB[0];
     return firstNameA.localeCompare(firstNameB);
@@ -2461,6 +2444,7 @@ function renderClients() {
     const div = document.createElement('div');
     div.className = `client-item ${clientId === currentClient ? 'active' : ''}`;
     
+    // Convert "First Last" to "Last, First"
     const nameParts = client.name.split(' ');
     const firstName = nameParts[0];
     const lastName = nameParts[nameParts.length - 1];
@@ -2481,7 +2465,7 @@ async function switchClient(clientId) {
   
   // Update UI - just show client name, profile status will be separate
   document.getElementById('documentsHeader').querySelector('span').textContent = `${client.name} Documents`;
-  Clients();
+  renderClients();
   
   // Load documents for this specific client
   await loadClientDocuments(clientId);
