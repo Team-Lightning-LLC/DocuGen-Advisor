@@ -1907,31 +1907,62 @@ async function loadClientsFromVertesia() {
         }
       }
       
-      // Clean up and validate client name
-      if (clientName) {
-        // Remove file extensions and clean up
-        clientName = clientName.replace(/\.(pdf|docx?|xlsx?|pptx?)$/i, '').trim();
-        
-        // Only process if it looks like a real name (has at least first and last)
-        if (clientName.includes(' ') && clientName.split(' ').length >= 2) {
-          
-          // Normalize the name for comparison (lowercase, single spaces)
-          const normalizedName = clientName.toLowerCase()
-            .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
-            .trim();
-          
-          // If we haven't seen this normalized name before, or if this version looks "better"
-          if (!clientNamesMap.has(normalizedName)) {
-            clientNamesMap.set(normalizedName, clientName);
-          } else {
-            // Keep the version with proper capitalization if current one is all lowercase
-            const existing = clientNamesMap.get(normalizedName);
-            if (existing === existing.toLowerCase() && clientName !== clientName.toLowerCase()) {
-              clientNamesMap.set(normalizedName, clientName);
-            }
-          }
-        }
+   // Clean up and validate client name
+if (clientName) {
+  // Remove file extensions and clean up
+  clientName = clientName.replace(/\.(pdf|docx?|xlsx?|pptx?)$/i, '').trim();
+  
+  // Common document/business terms that definitely aren't first names
+  const documentTerms = [
+    'analysis', 'financial', 'statement', 'document', 'report', 
+    'portfolio', 'quarterly', 'tax', 'retirement', 'risk',
+    'assessment', 'meeting', 'preparation', 'summary', 'review',
+    'invoice', 'receipt', 'balance', 'transaction', 'account',
+    'client', 'customer', 'prospect', 'lead', 'contact'
+  ];
+  
+  // Split name and check components
+  const nameParts = clientName.split(/[\s_-]+/); // Split on spaces, underscores, hyphens
+  
+  // Basic validation checks
+  const hasValidStructure = nameParts.length >= 2 && nameParts.length <= 4; // Most names are 2-4 parts
+  const firstWord = nameParts[0].toLowerCase();
+  const lastWord = nameParts[nameParts.length - 1].toLowerCase();
+  
+  // Check if this looks like a real person's name
+  const isLikelyPersonName = 
+    hasValidStructure &&
+    !documentTerms.includes(firstWord) &&  // First word isn't a document term
+    !documentTerms.includes(lastWord) &&   // Last word isn't a document term
+    /^[A-Z][a-z]/.test(nameParts[0]) &&   // First name starts with capital
+    /^[A-Z][a-z]/.test(nameParts[nameParts.length - 1]) && // Last name starts with capital
+    nameParts.every(part => part.length > 1) && // No single letter "names"
+    !clientName.match(/\d{2,}/) && // No multiple digits (like dates/IDs)
+    !clientName.includes('@') &&   // No email addresses
+    clientName.length < 50;        // Reasonable name length
+  
+  // Only process if it passes all validation
+  if (isLikelyPersonName) {
+    // Reconstruct clean name from valid parts
+    clientName = nameParts.join(' ');
+    
+    // Normalize the name for comparison (lowercase, single spaces)
+    const normalizedName = clientName.toLowerCase()
+      .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+      .trim();
+    
+    // If we haven't seen this normalized name before, or if this version looks "better"
+    if (!clientNamesMap.has(normalizedName)) {
+      clientNamesMap.set(normalizedName, clientName);
+    } else {
+      // Keep the version with proper capitalization if current one is all lowercase
+      const existing = clientNamesMap.get(normalizedName);
+      if (existing === existing.toLowerCase() && clientName !== clientName.toLowerCase()) {
+        clientNamesMap.set(normalizedName, clientName);
       }
+    }
+  }
+}
     });
     
     // Convert to array, sort alphabetically, then convert to clientsData format
