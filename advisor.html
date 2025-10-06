@@ -2381,22 +2381,34 @@ function renderDocuments(searchQuery = '') {
     return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
   });
   
-  filteredDocs.forEach((doc, index) => {
-    const div = document.createElement('div');
-    div.className = 'doc-item';
-    div.innerHTML = `
-      <div class="doc-info">
-        <div class="doc-name">${doc.name}</div>
-        <div class="doc-date">${doc.date}</div>
-      </div>
-      <div class="doc-actions">
-        <span class="doc-action" onclick="viewDocument('${doc.id}')">view</span>
-        <span class="doc-action" onclick="downloadDocument('${doc.id}')">download</span>
-        <span class="doc-action" onclick="deleteDocument('${doc.id}')">delete</span>
-      </div>
-    `;
-    docsList.appendChild(div);
-  });
+ filteredDocs.forEach((doc, index) => {
+  // Format the date nicely
+  let formattedDate = '';
+  if (doc.date) {
+    const dateObj = new Date(doc.date);
+    if (!isNaN(dateObj)) {
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      formattedDate = `Created: ${dateObj.toLocaleDateString('en-US', options)}`;
+    } else {
+      formattedDate = `Created: ${doc.date}`;
+    }
+  }
+  
+  const div = document.createElement('div');
+  div.className = 'doc-item';
+  div.innerHTML = `
+    <div class="doc-info">
+      <div class="doc-name">${doc.name}</div>
+      <div class="doc-date">${formattedDate}</div>
+    </div>
+    <div class="doc-actions">
+      <span class="doc-action" onclick="viewDocument('${doc.id}')">view</span>
+      <span class="doc-action" onclick="downloadDocument('${doc.id}')">download</span>
+      <span class="doc-action" onclick="deleteDocument('${doc.id}')">delete</span>
+    </div>
+  `;
+  docsList.appendChild(div);
+});
 }
 // Call this after each generation
 // Add to generateDocument() and generateAIProfile() after lastGenerationTime = now;
